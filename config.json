@@ -1,0 +1,12 @@
+{
+    "search_words": ["เพื่อไทย", "ก้าวไกล", "ไทยสร้างไทย", "พลังประชารัฐ"],
+    "topic_names": ["pheuthai", "moveforward", "thaisangthai", "palangpracharath"],
+    "since": "2023-04-09",
+    "language": "th",
+    "kafka": {
+        "bootstrap_servers": "localhost:9092",
+        "request_timeout_ms": 60000
+    },
+    "google_cloud_credentials_path": "/Users/ssuphainyo/twtproj/twitter-thailand-election-2023-fe6ad3641857.json",
+    "output_path": "ms/"
+}
