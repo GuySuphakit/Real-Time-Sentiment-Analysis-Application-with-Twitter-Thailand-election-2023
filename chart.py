@@ -1,8 +1,6 @@
 
 import json
-import os
 import re
-import requests
 
 import matplotlib.pyplot as plt
 import plotly.express as px
