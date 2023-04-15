@@ -5,8 +5,8 @@ The captured tweets were saved into Apache Druid for storage, and a chart was pr
 
 # Screenshots
 
-![title](./screenshots/PositiveRateByParty.png)
+![title](./Screenshots/PositiveRateByParty.png)
 
-![title](./screenshots/AvgSentimentByDay.png)
+![title](./Screenshots/AvgSentimentByDay.png)
 
-![title](./screenshots/RawData.png)
+![title](./Screenshots/RawData.png)
