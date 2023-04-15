@@ -11,4 +11,6 @@ The captured tweets were saved into Apache Druid for storage, and a chart was pr
 
 ![title](./Screenshots/TopHashtags.png)
 
+![title](./Screenshots/WordCloud.png)
+
 ![title](./Screenshots/RawData.png)
