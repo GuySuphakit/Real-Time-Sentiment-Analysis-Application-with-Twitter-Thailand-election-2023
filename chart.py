@@ -10,14 +10,8 @@ import pandas as pd
 import numpy as np
 
 import streamlit as st
-from PIL import Image
-from collections import Counter
-from io import BytesIO
 from wordcloud import WordCloud
 from pythainlp.tokenize import word_tokenize
-
-import matplotlib
-matplotlib.use('Agg')
 
 # Define function to generate line chart of average sentiment by day and party
 def generate_line_chart(df):
