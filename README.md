@@ -9,4 +9,6 @@ The captured tweets were saved into Apache Druid for storage, and a chart was pr
 
 ![title](./Screenshots/AvgSentimentByDay.png)
 
+![title](./Screenshots/TopHashtags.png)
+
 ![title](./Screenshots/RawData.png)
