@@ -9,6 +9,7 @@ import numpy as np
 
 import streamlit as st
 from wordcloud import WordCloud
+from pythainlp.util import normalize
 from pythainlp.tokenize import word_tokenize
 
 # Define function to generate line chart of average sentiment by day and party
@@ -61,21 +62,25 @@ def remove_non_thai(text):
     pattern = re.compile(r'[^\u0E00-\u0E7F\s]') # Match non-Thai characters and whitespace
     return re.sub(pattern, '', text)
 
-def generate_word_cloud(df):
+def generate_word_cloud(df):    
     text = ' '.join(df['tweet'].tolist())
     text = re.sub(r'http\S+', '', text)
     text = re.sub(r'@[\u0E00-\u0E7F\w]+', '', text)
     text = re.sub(r'#[\u0E00-\u0E7F\w]+', '', text)
     text = remove_non_thai(text)  # remove non-Thai characters
-    tokens = word_tokenize(text, engine='newmm')
-    text = ' '.join(tokens)
-    font_path = '/Library/Fonts/Sarabun-Regular.ttf'
-    wordcloud = WordCloud(font_path=font_path, width=800, height=400, background_color='white', colormap='viridis').generate(text)
+    text = normalize(text)
+    tokens = word_tokenize(text, engine='newmm', keep_whitespace=False)
+    all_words = ' '.join(tokens).strip()
+    font_path = '/Library/Fonts/THSarabunNew Bold.ttf'
+    stopwords=['เป็น','คือ','และ','แต่','ค่ะ','ครับ','ผม','จะ','ละ','ๆ','ถ้า',
+               'เลย','','ว่า','อะ','ตะ','คะ','ก็','จาก','เรา']
+    wordcloud = WordCloud(font_path=font_path, stopwords=stopwords,
+                          width=2000, height=1000, max_words=75, prefer_horizontal=.9, regexp=r"[\u0E00-\u0E7F']+",
+                          background_color='white', colormap='viridis').generate(all_words)
     fig, ax = plt.subplots(figsize=(16, 8))
     ax.imshow(wordcloud, interpolation='bilinear')
     ax.set_axis_off()
     return fig
-
 
 def try_json_loads(x):
     try:
