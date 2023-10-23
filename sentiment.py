@@ -1,88 +1,63 @@
-
 import pandas as pd
 import re
-import sys
 import json
+from pydruid.db import connect
+from google.cloud import language_v1
+
 from pytz import timezone
 from datetime import datetime, timedelta, date
-from google.cloud import language_v1
-from pydruid.db import connect
 
-import pandas as pd
-import re
-from google.cloud import language_v1
-
-# Create Druid connection
+# create a connection to Druid broker node
 conn = connect(host='localhost', port=8888, path='/druid/v2/sql/', scheme='http')
 
-class SentimentAnalyzer:
-    def __init__(self, config):
-        self.config = config
-        
-        # Create a client to connect to the Google Cloud Natural Language API
-        self.client = language_v1.LanguageServiceClient.from_service_account_json(config['google_cloud_credentials_path'])
+cursor = conn.cursor()
+cursor.execute('SELECT * FROM pheuthai_demo2')
+df_pheuthai = pd.DataFrame(cursor.fetchall(), columns=[desc[0] for desc in cursor.description])
+df_pheuthai = df_pheuthai.loc[:,['id','name','datetime','tweet','hashtags']]
+df_pheuthai['party'] = 'pheuthai'
 
-    def analyze(self, text):
-        document = language_v1.Document(
-            content=self.clean_tweet(text), 
-            type_=language_v1.Document.Type.PLAIN_TEXT
-        )
-        
-        try:
-            response = self.client.analyze_sentiment(document=document)
-            return response.document_sentiment.score
-        
-        except Exception as e:
-            print(f"Error in sentiment analysis: {e}")
-            return None
+cursor = conn.cursor()
+cursor.execute('SELECT * FROM palangpracharath_demo11')
+df_palangpracharath = pd.DataFrame(cursor.fetchall(), columns=[desc[0] for desc in cursor.description])
+df_palangpracharath = df_palangpracharath.loc[:,['id','name','datetime','tweet','hashtags']]
+df_palangpracharath['party'] = 'palangpracharath'
 
-def load_data(sql_query, party_name, params=None):
-    cursor = conn.cursor()
+cursor = conn.cursor()
+cursor.execute('SELECT * FROM thaisangthai_demo3')
+df_thaisangthai = pd.DataFrame(cursor.fetchall(), columns=[desc[0] for desc in cursor.description])
+df_thaisangthai = df_thaisangthai.loc[:,['id','name','datetime','tweet','hashtags']]
+df_thaisangthai['party'] = 'thaisangthai'
 
-    try:
-        cursor.execute(sql_query, params)
+cursor = conn.cursor()
+cursor.execute('SELECT * FROM moveforward_demo')
+df_moveforward = pd.DataFrame(cursor.fetchall(), columns=[desc[0] for desc in cursor.description])
+df_moveforward = df_moveforward.loc[:,['id','name','datetime','tweet','hashtags']]
+df_moveforward['party'] = 'moveforward'
 
-    except Exception as e:
-        print(f"Error executing Druid query: {e}")
-        return pd.DataFrame()
+df = pd.concat([df_thaisangthai, df_palangpracharath, df_pheuthai, df_moveforward]).reset_index(drop=True)
+thai_tz = timezone('Asia/Bangkok')
+df['datetime'] = pd.to_datetime(df['datetime'], utc=True)
+df['datetime'] = pd.to_datetime(df['datetime'].dt.tz_convert(thai_tz).dt.strftime('%Y-%m-%d %H:%M:%S'))
+df = df.drop_duplicates(['id'], keep='first')
 
-    df = pd.DataFrame(cursor.fetchall(), columns=[desc[0] for desc in cursor.description])
-    df = df[['id','name','datetime','tweet','hashtags']]
-    df['party'] = party_name
+# Load configuration from file
+with open('config.json', 'r') as config_file:
+    config = json.load(config_file)
 
-    return df
+# Create a client to connect to the Google Cloud Natural Language API
+client = language_v1.LanguageServiceClient.from_service_account_json(config['google_cloud_credentials_path'])
 
-if __name__ == '__main__':
+def analyze_sentiment(tweet_text):
+    # Remove URLs, mentions, and hashtags
+    tweet_text = re.sub(r'http\S+', '', tweet_text)
+    tweet_text = re.sub(r'@[\u0E00-\u0E7F\w]+', '', tweet_text)
+    tweet_text = re.sub(r'#[\u0E00-\u0E7F\w]+', '', tweet_text)
 
-    try:
-        with open('config.json') as f:
-            config = json.load(f)
-    
-    except Exception as e:
-        print(f"Error loading config file: {e}")
-        sys.exit(1)
+    # Call the Google Cloud Natural Language API to perform sentiment analysis
+    document = language_v1.Document(content=tweet_text, type_=language_v1.Document.Type.PLAIN_TEXT)
+    response = client.analyze_sentiment(document=document)
+    sentiment = response.document_sentiment.score
+    return sentiment
 
-    try:
-        # Create analyzer
-        analyzer = SentimentAnalyzer(config)
-
-        # Load data
-        df_pheuthai = load_data('SELECT * FROM pheuthai_demo2', 'pheuthai')
-        df_palangpracharath = load_data('SELECT * FROM palangpracharath_demo11', 'palangpracharath')
-        df_thaisangthai = load_data('SELECT * FROM thaisangthai_demo3')
-        df_moveforward = load_data('SELECT * FROM moveforward_demo')
-
-        # Concatenate data
-        df = pd.concat([df_thaisangthai, df_palangpracharath, df_pheuthai, df_moveforward]).reset_index(drop=True)
-        df['datetime'] = pd.to_datetime(df['datetime'], utc=True)
-        df['datetime'] = pd.to_datetime(df['datetime'].dt.tz_convert(timezone('Asia/Bangkok')).dt.strftime('%Y-%m-%d %H:%M:%S'))
-        df = df.drop_duplicates(['id'], keep='first')
-
-        # Calculate sentiment 
-        df['sentiment'] = df['tweet'].apply(analyzer.analyze)
-
-        # Save results
-        df.to_csv('results.csv', index=False)
-
-    except Exception as e:
-        print(f"Unexpected error: {e}")
+df['sentiment'] = df['tweet'].apply(analyze_sentiment)
+df.to_csv('data.csv', index=False)
